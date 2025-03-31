@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank - Loan Risk Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #5D5CDE;
+            --secondary-color: #4E4DC5;
+            --light-bg: #FFFFFF;
+            --dark-bg: #181818;
+            --light-text: #333333;
+            --dark-text: #F5F5F5;
+            --light-card: #F8F8F8;
+            --dark-card: #242424;
+            --light-border: #E0E0E0;
+            --dark-border: #3A3A3A;
+            --light-input: #FFFFFF;
+            --dark-input: #2A2A2A;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            margin: 0 1px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: inline-block;
+            opacity: 0.7;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation: pulse 1s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation: pulse 1s infinite 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation: pulse 1s infinite 0.4s;
+        }
+
+        .chat-message {
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .chat-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Dark mode styles */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: var(--dark-bg);
+                color: var(--dark-text);
+            }
+            .bg-white {
+                background-color: var(--dark-bg);
+            }
+            .bg-gray-100 {
+                background-color: var(--dark-card);
+            }
+            .text-gray-800 {
+                color: var(--dark-text);
+            }
+            .text-gray-700 {
+                color: var(--dark-text);
+            }
+            .text-gray-600 {
+                color: var(--dark-text);
+            }
+            .border {
+                border-color: var(--dark-border);
+            }
+            .shadow {
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            }
+            input, select, textarea {
+                background-color: var(--dark-input);
+                color: var(--dark-text);
+                border-color: var(--dark-border);
+            }
+            .chat-container {
+                background-color: var(--dark-card);
+            }
+            .customer-message {
+                background-color: var(--primary-color);
+                color: white;
+            }
+            .bot-message {
+                background-color: var(--dark-input);
+                color: var(--dark-text);
+            }
+        }
+
+        /* Light mode styles */
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: var(--light-bg);
+                color: var(--light-text);
+            }
+            .chat-container {
+                background-color: var(--light-card);
+            }
+            .customer-message {
+                background-color: var(--primary-color);
+                color: white;
+            }
+            .bot-message {
+                background-color: var(--light-input);
+                color: var(--light-text);
+            }
+        }
+
+        /* Custom slider styles */
+        .range-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #d3d3d3;
+            outline: none;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .range-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body class="font-sans min-h-screen">
+    <header class="bg-gradient-to-r from-indigo-700 to-purple-800 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fas fa-landmark text-3xl mr-3"></i>
+                    <h1 class="text-2xl font-bold">SecureBank</h1>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="bankBtn" class="px-6 py-2 rounded-full bg-white text-indigo-700 font-semibold hover:bg-opacity-90 transition active">
+                        <i class="fas fa-building mr-2"></i>Bank
+                    </button>
+                    <button id="customerBtn" class="px-6 py-2 rounded-full bg-transparent border border-white text-white font-semibold hover:bg-white hover:bg-opacity-20 transition">
+                        <i class="fas fa-user mr-2"></i>Customer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Bank Section -->
+        <section id="bankSection" class="block">
+            <div class="bg-gray-100 rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center">
+                    <i class="fas fa-chart-line mr-3 text-indigo-600"></i>
+                    Loan Risk Prediction System
+                </h2>
+                <p class="text-gray-600 mb-6">Enter customer information to analyze loan eligibility.</p>
+                
+                <form id="loanForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="age">Age</label>
+                            <input type="number" id="age" name="age" min="18" max="100" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="income">Annual Income (₹)</label>
+                            <input type="number" id="income" name="income" min="0" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="dependents">Number of Dependents</label>
+                            <input type="number" id="dependents" name="dependents" min="0" max="10" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="creditScore">Credit Score</label>
+                            <div class="flex items-center space-x-4">
+                                <input type="range" id="creditScore" name="creditScore" min="300" max="850" value="675" class="range-slider w-4/5" required>
+                                <span id="creditScoreValue" class="w-1/5 text-center font-semibold">675</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="loanAmount">Loan Amount (₹)</label>
+                            <input type="number" id="loanAmount" name="loanAmount" min="1000" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="loanTerm">Loan Term (Months)</label>
+                            <select id="loanTerm" name="loanTerm" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                                <option value="12">12 months</option>
+                                <option value="24">24 months</option>
+                                <option value="36">36 months</option>
+                                <option value="48">48 months</option>
+                                <option value="60">60 months</option>
+                                <option value="72">72 months</option>
+                                <option value="84">84 months</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="employment">Employment Status</label>
+                            <select id="employment" name="employment" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                                <option value="full-time">Full-time</option>
+                                <option value="part-time">Part-time</option>
+                                <option value="self-employed">Self-employed</option>
+                                <option value="unemployed">Unemployed</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2" for="homeOwnership">Home Ownership</label>
+                            <select id="homeOwnership" name="homeOwnership" class="w-full px-4 py-2 border rounded-lg text-base focus:outline-none focus:border-indigo-500" required>
+                                <option value="own">Own</option>
+                                <option value="mortgage">Mortgage</option>
+                                <option value="rent">Rent</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center">
+                        <button type="submit" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                            <i class="fas fa-calculator mr-2"></i>Analyze Loan Eligibility
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="resultSection" class="bg-gray-100 rounded-lg shadow-lg p-6 hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Analysis Results</h2>
+                    <button id="newAnalysisBtn" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-redo mr-2"></i>New Analysis
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-semibold">Loan Approval Status:</h3>
+                        <div id="approvalStatus" class="text-lg font-bold"></div>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div id="approvalBar" class="h-4 rounded-full" style="width: 0%; transition: width 1s ease-in-out;"></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Risk Factors</h3>
+                        <ul id="riskFactors" class="list-disc list-inside space-y-2 text-gray-700"></ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Recommendations</h3>
+                        <ul id="recommendations" class="list-disc list-inside space-y-2 text-gray-700"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Customer Section -->
+        <section id="customerSection" class="hidden">
+            <div class="bg-gray-100 rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center">
+                    <i class="fas fa-robot mr-3 text-indigo-600"></i>
+                    Loan Eligibility Assistant
+                </h2>
+                <p class="text-gray-600 mb-6">Get personalized loan recommendations through our smart assistant.</p>
+                
+                <div class="chat-container p-4 rounded-lg border max-h-96 overflow-y-auto mb-4">
+                    <div id="chatMessages" class="space-y-4">
+                        <!-- Messages will be added here dynamically -->
+                    </div>
+                </div>
+                
+                <div id="chatControls">
+                    <div class="flex gap-2">
+                        <input type="text" id="chatInput" class="w-full px-4 py-3 border rounded-lg text-base focus:outline-none focus:border-indigo-500" placeholder="Type your response here..." disabled>
+                        <button id="sendMessage" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button id="restartChat" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-redo mr-2"></i>Restart Conversation
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fas fa-landmark text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold">SecureBank</h3>
+                    </div>
+                    <p class="text-gray-400 mt-2">Intelligent loan risk assessment</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="hover:text-indigo-400 transition"><i class="fab fa-facebook-f text-xl"></i></a>
+                    <a href="#" class="hover:text-indigo-400 transition"><i class="fab fa-twitter text-xl"></i></a>
+                    <a href="#" class="hover:text-indigo-400 transition"><i class="fab fa-linkedin-in text-xl"></i></a>
+                    <a href="#" class="hover:text-indigo-400 transition"><i class="fab fa-instagram text-xl"></i></a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400">
+                <p>&copy; 2023 SecureBank. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Neural Network Implementation
+        class NeuralNetwork {
+            constructor(inputNodes, hiddenNodes, outputNodes) {
+                this.inputNodes = inputNodes;
+                this.hiddenNodes = hiddenNodes;
+                this.outputNodes = outputNodes;
+                
+                // Initialize weights with random values
+                this.weights_ih = this.generateMatrix(this.hiddenNodes, this.inputNodes);
+                this.weights_ho = this.generateMatrix(this.outputNodes, this.hiddenNodes);
+                
+                // Initialize biases
+                this.bias_h = this.generateMatrix(this.hiddenNodes, 1);
+                this.bias_o = this.generateMatrix(this.outputNodes, 1);
+            }
+            
+            generateMatrix(rows, cols) {
+                let matrix = [];
+                for (let i = 0; i < rows; i++) {
+                    let row = [];
+                    for (let j = 0; j < cols; j++) {
+                        // Initialize with small random values
+                        row.push(Math.random() * 2 - 1);
+                    }
+                    matrix.push(row);
+                }
+                return matrix;
+            }
+            
+            // Activation function (sigmoid)
+            sigmoid(x) {
+                return 1 / (1 + Math.exp(-x));
+            }
+            
+            // Make a prediction
+            predict(inputArray) {
+                // Convert inputs to matrix
+                let inputs = inputArray.map(x => [x]);
+                
+                // Generate hidden outputs
+                let hidden = this.matrixMultiply(this.weights_ih, inputs);
+                hidden = this.matrixAdd(hidden, this.bias_h);
+                hidden = this.matrixMap(hidden, this.sigmoid);
+                
+                // Generate output
+                let output = this.matrixMultiply(this.weights_ho, hidden);
+                output = this.matrixAdd(output, this.bias_o);
+                output = this.matrixMap(output, this.sigmoid);
+                
+                // Convert output matrix to array
+                return output.map(x => x[0]);
+            }
+            
+            // Matrix operations
+            matrixMultiply(a, b) {
+                let result = [];
+                for (let i = 0; i < a.length; i++) {
+                    result[i] = [];
+                    for (let j = 0; j < b[0].length; j++) {
+                        let sum = 0;
+                        for (let k = 0; k < a[0].length; k++) {
+                            sum += a[i][k] * b[k][j];
+                        }
+                        result[i][j] = sum;
+                    }
+                }
+                return result;
+            }
+            
+            matrixAdd(a, b) {
+                let result = [];
+                for (let i = 0; i < a.length; i++) {
+                    result[i] = [];
+                    for (let j = 0; j < a[0].length; j++) {
+                        result[i][j] = a[i][j] + b[i][j];
+                    }
+                }
+                return result;
+            }
+            
+            matrixMap(matrix, func) {
+                let result = [];
+                for (let i = 0; i < matrix.length; i++) {
+                    result[i] = [];
+                    for (let j = 0; j < matrix[0].length; j++) {
+                        result[i][j] = func(matrix[i][j]);
+                    }
+                }
+                return result;
+            }
+        }
+
+        // Pre-trained neural network weights for loan prediction
+        // In a real application, these would be trained on actual data
+        function initializeTrainedNetwork() {
+            const nn = new NeuralNetwork(8, 10, 1);
+            
+            // Set pre-defined weights to simulate training
+            // These are simplified weights for demonstration
+            nn.weights_ih = [
+                [0.2, -0.3, 0.5, 0.8, -0.2, 0.1, 0.3, 0.4],
+                [0.1, 0.5, -0.3, 0.7, -0.1, 0.2, -0.5, 0.3],
+                [-0.4, 0.6, 0.1, 0.9, 0.2, -0.3, 0.4, -0.2],
+                [0.3, -0.2, 0.4, 0.6, 0.3, 0.1, -0.3, 0.2],
+                [-0.1, 0.4, -0.2, 0.5, -0.4, 0.3, 0.2, -0.1],
+                [0.5, -0.1, 0.3, 0.4, 0.1, -0.2, 0.3, 0.5],
+                [0.2, 0.3, -0.4, 0.1, 0.5, 0.2, -0.1, 0.3],
+                [-0.3, 0.2, 0.5, -0.1, 0.3, -0.4, 0.2, 0.1],
+                [0.4, -0.5, 0.2, 0.3, -0.2, 0.5, -0.3, 0.4],
+                [-0.2, 0.1, -0.3, 0.2, 0.4, -0.1, 0.5, -0.2]
+            ];
+            
+            nn.bias_h = [
+                [0.1], [0.2], [-0.1], [0.3], [-0.2], [0.1], [-0.3], [0.2], [-0.1], [0.3]
+            ];
+            
+            nn.weights_ho = [
+                [0.5, 0.3, -0.4, 0.2, -0.1, 0.6, 0.3, -0.2, 0.4, -0.3]
+            ];
+            
+            nn.bias_o = [
+                [0.1]
+            ];
+            
+            return nn;
+        }
+
+        // Main application code
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize neural network
+            const neuralNetwork = initializeTrainedNetwork();
+            
+            // UI Elements
+            const bankBtn = document.getElementById('bankBtn');
+            const customerBtn = document.getElementById('customerBtn');
+            const bankSection = document.getElementById('bankSection');
+            const customerSection = document.getElementById('customerSection');
+            const loanForm = document.getElementById('loanForm');
+            const resultSection = document.getElementById('resultSection');
+            const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+            const approvalStatus = document.getElementById('approvalStatus');
+            const approvalBar = document.getElementById('approvalBar');
+            const riskFactors = document.getElementById('riskFactors');
+            const recommendations = document.getElementById('recommendations');
+            const creditScore = document.getElementById('creditScore');
+            const creditScoreValue = document.getElementById('creditScoreValue');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const sendMessage = document.getElementById('sendMessage');
+            const restartChat = document.getElementById('restartChat');
+            
+            // Tab switching
+            bankBtn.addEventListener('click', function() {
+                bankSection.classList.remove('hidden');
+                bankSection.classList.add('block');
+                customerSection.classList.add('hidden');
+                
+                bankBtn.classList.add('bg-white', 'text-indigo-700');
+                bankBtn.classList.remove('bg-transparent', 'border', 'text-white');
+                
+                customerBtn.classList.remove('bg-white', 'text-indigo-700');
+                customerBtn.classList.add('bg-transparent', 'border', 'text-white');
+            });
+            
+            customerBtn.addEventListener('click', function() {
+                customerSection.classList.remove('hidden');
+                bankSection.classList.remove('block');
+                bankSection.classList.add('hidden');
+                
+                customerBtn.classList.add('bg-white', 'text-indigo-700');
+                customerBtn.classList.remove('bg-transparent', 'border', 'text-white');
+                
+                bankBtn.classList.remove('bg-white', 'text-indigo-700');
+                bankBtn.classList.add('bg-transparent', 'border', 'text-white');
+                
+                // Start the chat if it hasn't been started yet
+                if (chatMessages.children.length === 0) {
+                    startCustomerChat();
+                }
+            });
+            
+            // Credit score slider
+            creditScore.addEventListener('input', function() {
+                creditScoreValue.textContent = creditScore.value;
+            });
+            
+            // Loan form submission
+            loanForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                analyzeLoanApplication();
+            });
+            
+            // New analysis button
+            newAnalysisBtn.addEventListener('click', function() {
+                resultSection.classList.add('hidden');
+                loanForm.reset();
+                creditScoreValue.textContent = "675";
+            });
+            
+            // Analyze loan application using neural network
+            function analyzeLoanApplication() {
+                // Get form values
+                const age = parseInt(document.getElementById('age').value);
+                const income = parseInt(document.getElementById('income').value);
+                const dependents = parseInt(document.getElementById('dependents').value);
+                const creditScore = parseInt(document.getElementById('creditScore').value);
+                const loanAmount = parseInt(document.getElementById('loanAmount').value);
+                const loanTerm = parseInt(document.getElementById('loanTerm').value);
+                const employment = document.getElementById('employment').value;
+                const homeOwnership = document.getElementById('homeOwnership').value;
+                
+                // Normalize inputs for neural network
+                const normalizedInputs = [
+                    age / 100, // Normalize age (assuming max age 100)
+                    income / 200000, // Normalize income (assuming max income $200k)
+                    dependents / 10, // Normalize dependents (assuming max 10)
+                    (creditScore - 300) / 550, // Normalize credit score (300-850)
+                    loanAmount / 1000000, // Normalize loan amount (assuming max $1M)
+                    loanTerm / 84, // Normalize loan term (assuming max 84 months)
+                    employmentToNum(employment) / 4, // Normalize employment status
+                    homeOwnershipToNum(homeOwnership) / 3 // Normalize home ownership
+                ];
+                
+                // Make prediction
+                const prediction = neuralNetwork.predict(normalizedInputs)[0];
+                const approvalPercentage = Math.round(prediction * 100);
+                
+                // Set approval status
+                if (approvalPercentage >= 70) {
+                    approvalStatus.textContent = `Approved (${approvalPercentage}% Confidence)`;
+                    approvalStatus.className = 'text-lg font-bold text-green-600';
+                    approvalBar.className = 'h-4 rounded-full bg-green-500';
+                } else if (approvalPercentage >= 40) {
+                    approvalStatus.textContent = `Conditionally Approved (${approvalPercentage}% Confidence)`;
+                    approvalStatus.className = 'text-lg font-bold text-yellow-600';
+                    approvalBar.className = 'h-4 rounded-full bg-yellow-500';
+                } else {
+                    approvalStatus.textContent = `Denied (${approvalPercentage}% Confidence)`;
+                    approvalStatus.className = 'text-lg font-bold text-red-600';
+                    approvalBar.className = 'h-4 rounded-full bg-red-500';
+                }
+                
+                // Animate approval bar
+                approvalBar.style.width = '0%';
+                setTimeout(() => {
+                    approvalBar.style.width = approvalPercentage + '%';
+                }, 100);
+                
+                // Generate risk factors
+                riskFactors.innerHTML = '';
+                const risks = generateRiskFactors(age, income, dependents, creditScore, loanAmount, loanTerm, employment, homeOwnership);
+                risks.forEach(risk => {
+                    const li = document.createElement('li');
+                    li.textContent = risk;
+                    li.className = 'text-red-600';
+                    riskFactors.appendChild(li);
+                });
+                
+                // Generate recommendations
+                recommendations.innerHTML = '';
+                const recs = generateRecommendations(age, income, dependents, creditScore, loanAmount, loanTerm, employment, homeOwnership);
+                recs.forEach(rec => {
+                    const li = document.createElement('li');
+                    li.textContent = rec;
+                    li.className = 'text-green-600';
+                    recommendations.appendChild(li);
+                });
+                
+                // Show result section
+                resultSection.classList.remove('hidden');
+                
+                // Scroll to results
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Utility functions for neural network inputs
+            function employmentToNum(status) {
+                const map = {
+                    'full-time': 4,
+                    'part-time': 3,
+                    'self-employed': 2,
+                    'retired': 1,
+                    'unemployed': 0
+                };
+                return map[status] || 0;
+            }
+            
+            function homeOwnershipToNum(status) {
+                const map = {
+                    'own': 3,
+                    'mortgage': 2,
+                    'rent': 1,
+                    'other': 0
+                };
+                return map[status] || 0;
+            }
+            
+            // Generate risk factors based on input data
+            function generateRiskFactors(age, income, dependents, creditScore, loanAmount, loanTerm, employment, homeOwnership) {
+                const risks = [];
+                
+                // Age factors
+                if (age < 25) {
+                    risks.push("Limited credit history due to young age");
+                } else if (age > 65) {
+                    risks.push("Higher risk due to approaching retirement age");
+                }
+                
+                // Income factors
+                const debtToIncomeRatio = (loanAmount / loanTerm) / (income / 12);
+                if (debtToIncomeRatio > 0.43) {
+                    risks.push(`High debt-to-income ratio of ${(debtToIncomeRatio * 100).toFixed(1)}%`);
+                }
+                
+                if (income < 25000) {
+                    risks.push("Low annual income may affect repayment ability");
+                }
+                
+                // Dependent factors
+                if (dependents > 3 && income < 75000) {
+                    risks.push("High number of dependents relative to income");
+                }
+                
+                // Credit score factors
+                if (creditScore < 580) {
+                    risks.push("Poor credit score below 580");
+                } else if (creditScore < 670) {
+                    risks.push("Fair credit score below 670");
+                }
+                
+                // Loan amount factors
+                if (loanAmount > income * 3) {
+                    risks.push("Loan amount exceeds 3x annual income");
+                }
+                
+                // Employment factors
+                if (employment === 'unemployed') {
+                    risks.push("Current unemployment status");
+                } else if (employment === 'part-time') {
+                    risks.push("Part-time employment may indicate income instability");
+                }
+                
+                // Housing factors
+                if (homeOwnership === 'rent' && loanAmount > 50000) {
+                    risks.push("High loan amount for renter status");
+                }
+                
+                // If no risks, add a positive note
+                if (risks.length === 0) {
+                    risks.push("No significant risk factors identified");
+                }
+                
+                return risks;
+            }
+            
+            // Generate recommendations based on input data
+            function generateRecommendations(age, income, dependents, creditScore, loanAmount, loanTerm, employment, homeOwnership) {
+                const recommendations = [];
+                
+                // Credit score recommendations
+                if (creditScore < 580) {
+                    recommendations.push("Work on improving credit score before applying");
+                    recommendations.push("Consider secured credit options to rebuild credit");
+                } else if (creditScore < 670) {
+                    recommendations.push("Improve credit score to qualify for better rates");
+                }
+                
+                // Income and loan amount recommendations
+                const monthlyPayment = loanAmount / loanTerm;
+                const monthlyIncome = income / 12;
+                
+                if (monthlyPayment > monthlyIncome * 0.36) {
+                    recommendations.push(`Reduce loan amount to keep monthly payment below 36% of income`);
+                }
+                
+                if (loanAmount > income * 3) {
+                    recommendations.push(`Consider a smaller loan amount (below ${(income * 3).toLocaleString()} recommended)`);
+                }
+                
+                // Term recommendations
+                if (loanAmount > 30000 && loanTerm < 48) {
+                    recommendations.push("Consider a longer loan term to reduce monthly payments");
+                }
+                
+                // Employment recommendations
+                if (employment === 'unemployed') {
+                    recommendations.push("Secure stable employment before applying for a loan");
+                } else if (employment === 'part-time') {
+                    recommendations.push("Consider moving to full-time employment to improve approval odds");
+                }
+                
+                // Other recommendations
+                if (dependents > 3 && income < 75000) {
+                    recommendations.push("Consider increasing income or decreasing expenses to improve debt-to-income ratio");
+                }
+                
+                // If all looks good
+                if (recommendations.length === 0) {
+                    recommendations.push("Your application appears strong - consider proceeding with formal application");
+                    recommendations.push("Shop around for the best interest rates from multiple lenders");
+                }
+                
+                return recommendations;
+            }
+            
+            // Customer chatbot logic
+            const chatSteps = [
+                {
+                    question: "Welcome to SecureBank's loan eligibility assistant! I'm here to help you determine if you qualify for a loan. Would you like to proceed?",
+                    options: ["Yes, let's start", "No, maybe later"],
+                    field: "start"
+                },
+                {
+                    question: "Great! First, may I know your age?",
+                    field: "age",
+                    validation: (value) => {
+                        const age = parseInt(value);
+                        return !isNaN(age) && age >= 18 && age <= 100;
+                    },
+                    errorMsg: "Please enter a valid age between 18 and 100."
+                },
+                {
+                    question: "What is your annual income (in ₹)?",
+                    field: "income",
+                    validation: (value) => {
+                        const income = parseInt(value);
+                        return !isNaN(income) && income >= 0;
+                    },
+                    errorMsg: "Please enter a valid income amount."
+                },
+                {
+                    question: "How many dependents do you have?",
+                    field: "dependents",
+                    validation: (value) => {
+                        const dependents = parseInt(value);
+                        return !isNaN(dependents) && dependents >= 0 && dependents <= 10;
+                    },
+                    errorMsg: "Please enter a valid number of dependents (0-10)."
+                },
+                {
+                    question: "What is your credit score? (If you don't know exactly, provide your best estimate between 300-850)",
+                    field: "creditScore",
+                    validation: (value) => {
+                        const score = parseInt(value);
+                        return !isNaN(score) && score >= 300 && score <= 850;
+                    },
+                    errorMsg: "Please enter a valid credit score between 300 and 850."
+                },
+                {
+                    question: "What loan amount are you looking for (in ₹)?",
+                    field: "loanAmount",
+                    validation: (value) => {
+                        const amount = parseInt(value);
+                        return !isNaN(amount) && amount >= 1000;
+                    },
+                    errorMsg: "Please enter a valid loan amount of at least ₹10,000."
+                },
+                {
+                    question: "What loan term (in months) are you interested in? Common terms are 12, 24, 36, 48, 60, 72, or 84 months.",
+                    field: "loanTerm",
+                    validation: (value) => {
+                        const term = parseInt(value);
+                        return !isNaN(term) && term >= 12 && term <= 84;
+                    },
+                    errorMsg: "Please enter a valid loan term between 12 and 84 months."
+                },
+                {
+                    question: "What is your current employment status?",
+                    options: ["Full-time", "Part-time", "Self-employed", "Unemployed", "Retired"],
+                    field: "employment"
+                },
+                {
+                    question: "What is your home ownership status?",
+                    options: ["Own", "Mortgage", "Rent", "Other"],
+                    field: "homeOwnership"
+                }
+            ];
+            
+            let currentStep = 0;
+            let chatData = {};
+            
+            // Function to add a message to the chat
+            function addChatMessage(message, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${sender === 'bot' ? 'bot-message' : 'customer-message'} p-3 rounded-lg max-w-3/4 ${sender === 'bot' ? 'ml-0' : 'ml-auto'}`;
+                messageDiv.textContent = message;
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // Trigger animation after a small delay
+                setTimeout(() => {
+                    messageDiv.classList.add('show');
+                }, 10);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                return messageDiv;
+            }
+            
+            // Function to show typing indicator
+            function showTypingIndicator() {
+                const indicator = document.createElement('div');
+                indicator.className = 'typing-indicator p-3 rounded-lg inline-block bot-message';
+                indicator.innerHTML = '<span></span><span></span><span></span>';
+                
+                chatMessages.appendChild(indicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                return indicator;
+            }
+            
+            // Function to display options as buttons
+            function displayOptions(options) {
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options-container flex flex-wrap gap-2 mt-2';
+                
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'option-btn px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition';
+                    button.textContent = option;
+                    
+                    button.addEventListener('click', () => {
+                        // Add user's selection to chat
+                        addChatMessage(option, 'customer');
+                        
+                        // Remove options
+                        optionsDiv.remove();
+                        
+                        // Process the response
+                        processUserResponse(option);
+                    });
+                    
+                    optionsDiv.appendChild(button);
+                });
+                
+                chatMessages.appendChild(optionsDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                return optionsDiv;
+            }
+            
+            // Function to start the customer chat
+            function startCustomerChat() {
+                // Reset chat data and current step
+                chatData = {};
+                currentStep = 0;
+                
+                // Clear existing messages
+                chatMessages.innerHTML = '';
+                
+                // Enable input and button
+                chatInput.disabled = false;
+                sendMessage.disabled = false;
+                
+                // Send first message with a typing indicator
+                const typingIndicator = showTypingIndicator();
+                
+                setTimeout(() => {
+                    typingIndicator.remove();
+                    
+                    // Add the first question
+                    addChatMessage(chatSteps[currentStep].question, 'bot');
+                    
+                    // If the first step has options, display them
+                    if (chatSteps[currentStep].options) {
+                        displayOptions(chatSteps[currentStep].options);
+                        chatInput.disabled = true;
+                        sendMessage.disabled = true;
+                    }
+                }, 1500);
+            }
+            
+            // Function to process user response
+            function processUserResponse(response) {
+                // Store the response
+                chatData[chatSteps[currentStep].field] = response;
+                
+                // Move to next step
+                currentStep++;
+                
+                // If chat is complete, show result
+                if (currentStep >= chatSteps.length) {
+                    showChatResult();
+                    return;
+                }
+                
+                // Show typing indicator
+                const typingIndicator = showTypingIndicator();
+                
+                // Show next question after a delay
+                setTimeout(() => {
+                    typingIndicator.remove();
+                    
+                    // Add the next question
+                    addChatMessage(chatSteps[currentStep].question, 'bot');
+                    
+                    // If the step has options, display them
+                    if (chatSteps[currentStep].options) {
+                        displayOptions(chatSteps[currentStep].options);
+                        chatInput.disabled = true;
+                        sendMessage.disabled = true;
+                    } else {
+                        chatInput.disabled = false;
+                        sendMessage.disabled = false;
+                        chatInput.focus();
+                    }
+                }, 1500);
+            }
+            
+            // Function to validate and process text input
+            function validateAndProcessInput() {
+                const response = chatInput.value.trim();
+                
+                if (response === '') return;
+                
+                // Check if the current step has validation
+                if (chatSteps[currentStep].validation) {
+                    if (!chatSteps[currentStep].validation(response)) {
+                        // Show error message
+                        addChatMessage(chatSteps[currentStep].errorMsg, 'bot');
+                        return;
+                    }
+                }
+                
+                // Add user's response to chat
+                addChatMessage(response, 'customer');
+                
+                // Clear input
+                chatInput.value = '';
+                
+                // Process the response
+                processUserResponse(response);
+            }
+            
+            // Function to show chat result
+            function showChatResult() {
+                // Disable input
+                chatInput.disabled = true;
+                sendMessage.disabled = true;
+                
+                // Show loading indicator
+                const typingIndicator = showTypingIndicator();
+                
+                setTimeout(() => {
+                    typingIndicator.remove();
+                    
+                    // Convert chat data to neural network inputs
+                    const normalizedInputs = [
+                        parseInt(chatData.age) / 100,
+                        parseInt(chatData.income) / 200000,
+                        parseInt(chatData.dependents) / 10,
+                        (parseInt(chatData.creditScore) - 300) / 550,
+                        parseInt(chatData.loanAmount) / 1000000,
+                        parseInt(chatData.loanTerm) / 84,
+                        employmentToNum(chatData.employment.toLowerCase()) / 4,
+                        homeOwnershipToNum(chatData.homeOwnership.toLowerCase()) / 3
+                    ];
+                    
+                    // Make prediction
+                    const prediction = neuralNetwork.predict(normalizedInputs)[0];
+                    const approvalPercentage = Math.round(prediction * 100);
+                    
+                    // Create result message
+                    let resultMessage = '';
+                    
+                    if (approvalPercentage >= 70) {
+                        resultMessage = `Congratulations! Based on the information provided, you have a high chance (${approvalPercentage}%) of being approved for your loan.`;
+                    } else if (approvalPercentage >= 40) {
+                        resultMessage = `You have a moderate chance (${approvalPercentage}%) of being approved for your loan, but there are some factors that may affect your application.`;
+                    } else {
+                        resultMessage = `I'm sorry, but based on the information provided, you have a low chance (${approvalPercentage}%) of being approved for your loan at this time.`;
+                    }
+                    
+                    // Add result message
+                    addChatMessage(resultMessage, 'bot');
+                    
+                    // Add risk factors and recommendations
+                    setTimeout(() => {
+                        const typingIndicator = showTypingIndicator();
+                        
+                        setTimeout(() => {
+                            typingIndicator.remove();
+                            
+                            // Get risk factors and recommendations
+                            const risks = generateRiskFactors(
+                                parseInt(chatData.age),
+                                parseInt(chatData.income),
+                                parseInt(chatData.dependents),
+                                parseInt(chatData.creditScore),
+                                parseInt(chatData.loanAmount),
+                                parseInt(chatData.loanTerm),
+                                chatData.employment.toLowerCase(),
+                                chatData.homeOwnership.toLowerCase()
+                            );
+                            
+                            const recommendations = generateRecommendations(
+                                parseInt(chatData.age),
+                                parseInt(chatData.income),
+                                parseInt(chatData.dependents),
+                                parseInt(chatData.creditScore),
+                                parseInt(chatData.loanAmount),
+                                parseInt(chatData.loanTerm),
+                                chatData.employment.toLowerCase(),
+                                chatData.homeOwnership.toLowerCase()
+                            );
+                            
+                            // Create factors message
+                            let factorsMessage = 'Here are some factors that influenced this decision:\n\n';
+                            
+                            risks.forEach(risk => {
+                                factorsMessage += `• ${risk}\n`;
+                            });
+                            
+                            // Add factors message
+                            addChatMessage(factorsMessage, 'bot');
+                            
+                            // Add recommendations after a delay
+                            setTimeout(() => {
+                                const typingIndicator = showTypingIndicator();
+                                
+                                setTimeout(() => {
+                                    typingIndicator.remove();
+                                    
+                                    // Create recommendations message
+                                    let recommendationsMessage = 'Here are some recommendations that may help improve your loan eligibility:\n\n';
+                                    
+                                    recommendations.forEach(rec => {
+                                        recommendationsMessage += `• ${rec}\n`;
+                                    });
+                                    
+                                    // Add recommendations message
+                                    addChatMessage(recommendationsMessage, 'bot');
+                                    
+                                    // Add final message after a delay
+                                    setTimeout(() => {
+                                        const typingIndicator = showTypingIndicator();
+                                        
+                                        setTimeout(() => {
+                                            typingIndicator.remove();
+                                            addChatMessage("Would you like to apply for a loan or speak with a loan officer for more information?", 'bot');
+                                            
+                                            // Display final options
+                                            displayOptions([
+                                                "Apply for a loan",
+                                                "Speak with a loan officer",
+                                                "No thanks"
+                                            ]);
+                                        }, 1500);
+                                    }, 1000);
+                                }, 2000);
+                            }, 1000);
+                        }, 2000);
+                    }, 1000);
+                }, 2000);
+            }
+            
+            // Send message button click
+            sendMessage.addEventListener('click', validateAndProcessInput);
+            
+            // Enter key press in input
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    validateAndProcessInput();
+                }
+            });
+            
+            // Restart chat button
+            restartChat.addEventListener('click', startCustomerChat);
+        });
+    </script>
+</body>
+</html>
